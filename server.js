@@ -2,8 +2,9 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./src/config/db');
+const test = require('./src/test/test');
 
-// Cargar variables de entorno
+// Cargar variables de entornooooo
 dotenv.config();
 
 // Conectar a la base de datos
@@ -12,7 +13,17 @@ connectDB();
 const app = express();
 
 // Middlewares globales
-app.use(cors()); // Permite peticiones de otros orígenes
+
+// Permitir solo tu frontend en producción
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://ecommerce-frontend-chi-ten.vercel.app',
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 app.use(express.json()); // Permite recibir JSON en el body de las peticiones
 
 // Ruta de prueba para saber que el servidor funciona
