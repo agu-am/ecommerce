@@ -1,58 +1,71 @@
 // backend/src/routes/paymentRoutes.js
 const express = require('express');
 const router = express.Router();
-const mercadopago = require('mercadopago');
+const { MercadoPagoConfig, Preference } = require('mercadopago');
 require('dotenv').config();
 
-// --- Configuración de Mercado Pago ---
-mercadopago.configure({
-    access_token: process.env.MERCADOPAGO_ACCESS_TOKEN
+const client = new MercadoPagoConfig({
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
 });
 
-// --- Endpoint para crear una preferencia de pago ---
 router.post('/create-preference', async (req, res) => {
     try {
-        // 1. Recibimos los datos del carrito desde el frontend
         const { items, payer, orderId } = req.body;
 
-        // 2. Construimos el objeto de la preferencia
-        //    Basado en la documentación oficial y ejemplos[reference:5][reference:6]
-        const preference = {
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'El carrito está vacío' });
+        }
+
+        const preferenceBody = {
             items: items.map(item => ({
                 title: item.title,
                 unit_price: Number(item.price),
                 quantity: Number(item.quantity),
-                currency_id: 'ARS', // o la moneda que uses
+                currency_id: 'ARS',
             })),
             payer: {
                 email: payer.email,
                 name: payer.name,
-                // ... puedes agregar más datos del pagador si lo deseas
+                surname: payer.surname || '',
             },
             back_urls: {
-                success: 'https://tudominio.com/success', // Reemplaza con tu URL
-                failure: 'https://tudominio.com/failure',
-                pending: 'https://tudominio.com/pending',
+                success: `${process.env.FRONTEND_URL}/order-success`,
+                failure: `${process.env.FRONTEND_URL}/cart`,
+                pending: `${process.env.FRONTEND_URL}/cart`,
             },
             auto_return: 'approved',
-            notification_url: 'https://tudominio.com/api/webhook', // ¡IMPORTANTE! Lo veremos luego
-            external_reference: orderId, // Para vincular el pago con tu pedido
-            statement_descriptor: 'MI TIENDA', // El nombre que verá el usuario en su resumen
+            notification_url: `${process.env.BACKEND_URL}/api/webhook`,
+            external_reference: orderId,
+            statement_descriptor: 'MI TIENDA',
         };
 
-        // 3. Llamamos a la API de Mercado Pago para crear la preferencia
-        const response = await mercadopago.preferences.create(preference);
-        console.log('Preferencia creada:', response.body.id);
+        const preference = new Preference(client);
+        const response = await preference.create({ body: preferenceBody });
 
-        // 4. Enviamos la URL de pago (init_point) al frontend
         res.json({
-            id: response.body.id,
-            init_point: response.body.init_point
+            id: response.id,
+            init_point: response.init_point,
+            sandbox_init_point: response.sandbox_init_point,
         });
 
     } catch (error) {
-        console.error('Error al crear la preferencia:', error);
+        console.error('❌ Error al crear preferencia:', error);
         res.status(500).json({ error: 'Error al crear la preferencia de pago' });
+    }
+});
+
+router.post('/webhook', async (req, res) => {
+    try {
+        res.status(200).send('OK');
+        const { type, data, id } = req.body;
+        console.log('📩 Webhook recibido:', { type, id });
+
+        if (type === 'payment') {
+            console.log(`🔄 Procesando pago ID: ${data.id}`);
+            // Aquí iría la lógica para actualizar el estado del pedido
+        }
+    } catch (error) {
+        console.error('❌ Error en webhook:', error);
     }
 });
 
