@@ -9,13 +9,12 @@ connectDB();
 
 const app = express();
 
-// --- Configuración CORS mejorada y sin errores ---
+// --- Configuración CORS (sin app.options) ---
 const allowedOrigins = [
   'http://localhost:5173',
   'https://ecommerce-frontend-chi-ten.vercel.app',
 ];
 
-// Middleware CORS con función de origen personalizada
 app.use(cors({
   origin: function (origin, callback) {
     // Permitir solicitudes sin origen (como Postman)
@@ -23,7 +22,7 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.warn('Origen bloqueado por CORS:', origin);
+      console.log('❌ CORS bloqueado:', origin);
       callback(new Error('No permitido por CORS'));
     }
   },
@@ -32,11 +31,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// NO es necesario app.options('*', cors()) - ya está cubierto por app.use(cors())
+// ❌ ELIMINA ESTA LÍNEA: app.options('*', cors());
 
 app.use(express.json());
 
-// Rutas
+// --- Rutas ---
 app.get('/', (req, res) => {
   res.send('API del Ecommerce funcionando 🚀');
 });
