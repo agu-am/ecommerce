@@ -2,7 +2,6 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./src/config/db');
-const test = require('./src/test/test');
 
 // Cargar variables de entornooooo
 dotenv.config();
