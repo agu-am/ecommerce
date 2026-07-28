@@ -32,6 +32,20 @@ const ProductSchema = new mongoose.Schema(
       enum: ['electronica', 'ropa', 'hogar', 'deportes', 'libros', 'otros'],
       default: 'otros',
     },
+    // 🆕 NUEVOS CAMPOS PARA FILTROS AVANZADOS
+    marca: {
+      type: String,
+      default: 'Sin marca',
+    },
+    tallas: {
+      type: [String],
+      default: [],
+      enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'], // Ejemplo de tallas
+    },
+    colores: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

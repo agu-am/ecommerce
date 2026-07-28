@@ -1,12 +1,100 @@
 const Product = require('../models/Product');
 
-// @desc   Obtener todos los productos
+// @desc   Obtener productos con filtros avanzados
 // @route  GET /api/products
 // @access Public
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find({});
-    res.json(products);
+    // Extraer todos los query params
+    const { 
+      search, 
+      categoria, 
+      marca, 
+      talla, 
+      color, 
+      minPrice, 
+      maxPrice,
+      sort,
+      limit = 20,
+      page = 1
+    } = req.query;
+
+    // Construir objeto de filtro
+    const filter = {};
+
+    // Búsqueda por nombre (case insensitive)
+    if (search) {
+      filter.nombre = { $regex: search, $options: 'i' };
+    }
+
+    // Filtro por categoría
+    if (categoria && categoria !== 'todos') {
+      filter.categoria = categoria;
+    }
+
+    // Filtro por marca
+    if (marca) {
+      filter.marca = marca;
+    }
+
+    // Filtro por talla (buscar en el array tallas)
+    if (talla) {
+      filter.tallas = { $in: [talla] };
+    }
+
+    // Filtro por color (buscar en el array colores)
+    if (color) {
+      filter.colores = { $in: [color] };
+    }
+
+    // Filtro por rango de precio
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.precio = {};
+      if (minPrice !== undefined) filter.precio.$gte = Number(minPrice);
+      if (maxPrice !== undefined) filter.precio.$lte = Number(maxPrice);
+    }
+
+    // Ordenamiento
+    let sortOption = {};
+    switch (sort) {
+      case 'price-asc': sortOption = { precio: 1 }; break;
+      case 'price-desc': sortOption = { precio: -1 }; break;
+      case 'name-asc': sortOption = { nombre: 1 }; break;
+      case 'name-desc': sortOption = { nombre: -1 }; break;
+      case 'newest': 
+      default: sortOption = { createdAt: -1 }; break;
+    }
+
+    // Paginación
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(50, parseInt(limit) || 20);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Ejecutar consulta
+    const products = await Product.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Contar total de resultados (para la paginación)
+    const total = await Product.countDocuments(filter);
+
+    // Obtener valores únicos para los filtros (para el frontend)
+    const marcas = await Product.distinct('marca');
+    const tallas = await Product.distinct('tallas');
+    const colores = await Product.distinct('colores');
+
+    res.json({
+      products,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      filters: {
+        marcas,
+        tallas: tallas.flat(),
+        colores: colores.flat(),
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ mensaje: 'Error al obtener productos', error: error.message });
