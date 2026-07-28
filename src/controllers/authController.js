@@ -18,8 +18,8 @@ const registerUser = async (req, res) => {
 
     // Validar campos obligatorios
     if (!nombre || !email || !password) {
-      return res.status(400).json({ 
-        mensaje: 'Por favor proporciona todos los campos requeridos' 
+      return res.status(400).json({
+        mensaje: 'Por favor proporciona todos los campos requeridos'
       });
     }
 
@@ -54,9 +54,9 @@ const registerUser = async (req, res) => {
     }
   } catch (error) {
     console.error('Error en register:', error);
-    res.status(500).json({ 
-      mensaje: 'Error en el servidor', 
-      error: error.message 
+    res.status(500).json({
+      mensaje: 'Error en el servidor',
+      error: error.message
     });
   }
 };
@@ -68,26 +68,16 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validar campos
-    if (!email || !password) {
-      return res.status(400).json({ 
-        mensaje: 'Por favor proporciona email y contraseña' 
-      });
-    }
-
-    // Buscar usuario por email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+      return res.status(401).json({ mensaje: 'Credenciales inválidas' }); // 👈 401
     }
 
-    // ✅ VERIFICAR CONTRASEÑA CON BCRYPT
-    const isPasswordMatch = bcrypt.compareSync(password, user.password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ mensaje: 'Credenciales inválidas' }); // 👈 401
     }
 
-    // Si todo es correcto, devolver datos
     res.json({
       _id: user._id,
       nombre: user.nombre,
@@ -96,11 +86,7 @@ const loginUser = async (req, res) => {
       token: generarToken(user._id),
     });
   } catch (error) {
-    console.error('Error en login:', error);
-    res.status(500).json({ 
-      mensaje: 'Error en el servidor', 
-      error: error.message 
-    });
+    res.status(500).json({ mensaje: 'Error en el servidor' });
   }
 };
 
