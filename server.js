@@ -31,8 +31,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ❌ ELIMINA ESTA LÍNEA: app.options('*', cors());
-
 app.use(express.json());
 
 // --- Rutas ---
